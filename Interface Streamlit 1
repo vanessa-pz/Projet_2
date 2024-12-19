@@ -1,90 +1,150 @@
 import streamlit as st
+import pandas as pd
+import numpy as np
+from sklearn.neighbors import NearestNeighbors
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
 
-# Configuration de la page
-st.set_page_config(page_title="Application Multi-pages", layout="wide")
+# Charger les données
+file_path = r'c:\Users\dassi\Downloads\df_api_df.csv'
+data = pd.read_csv(file_path)
 
-# Créer un menu de navigation avec une barre latérale
-pages = ["Accueil", "Interface graphique", "Programmation", "Recommandations"]
-page = st.sidebar.radio("Navigation", pages)
+# Préparer les données
+st.set_page_config(page_title="Recommandation de Films", layout="wide")
 
-# Page 1 : Accueil
-if page == "Accueil":
-    st.title("🏠 Accueil")
-    st.write("""
-    Bienvenue dans l'application Streamlit multi-pages.
+    # Centrer le titre principal
+st.markdown(
+        """
+        <div style="text-align: center;">
+            <h1>🎞️ "Bienvenue sur Cinéma Movie Time ! Vous êtes au ciné ..chez vous." 🏡</h1>
+            <h3>Les films de La Creuse présentent :</h3>
+        </div>
+        """,
+unsafe_allow_html=True,
+    )
+    # Afficher une image sur le thème du cinéma en haut de la page
+st.image(
+        "https://img.freepik.com/vecteurs-premium/fond-film-cinema-premiere_41737-251.jpg?w=900",
+        caption="Ne ratez jamais une séance grâce à Cinéma Movie Time",
+        use_column_width  = True
+    )
+    # Séparateur visuel
+st.markdown("<hr style='border: 1px solid #ccc;'>", unsafe_allow_html=True)
+    # Section de présentation centrée
+st.markdown(
+        """
+        <div style="text-align: center;">
+            <h4>Une programmation proposée par :</h4>
+            <p>👩‍💻 <b>Dalia</b>, 👨🏼‍💼 <b>Mourad</b>, 👨‍💻 <b>Adrien</b>, et 👩‍🏫 <b>Vanessa</b></p>
+            <p><b>Bon film et bons pop corn ! 🍿 🎦</b></p>
+        </div>
+        """,
+unsafe_allow_html=True,
+    )
+    # Section de mise en avant centrée
+st.markdown(
+        """
+        <div style="text-align: center;">
+            <h2>⭐ Des films Américains en Français !⭐</h2>
+            <p>&#127909; Découvrez les derniers films sélectionnés pour vous</p>
+            <p>🎬 Action, Drame, Comédie... il y en a pour tous les goûts !</p>
+        </div>
+        """,
+unsafe_allow_html=True,
+    )
+    # Ajout d'un message spécial en couleur
+st.markdown(
+        """
+        <div style="text-align: center; color: #FF5733;">
+            <h3> C'est Noël avant l'heure !🎄🎅</h3>
+        </div>
+        """,
+unsafe_allow_html=True,
+    )
+    # Pied de page
+st.markdown("<hr style='border: 1px solid #ccc;'>", unsafe_allow_html=True)
+st.markdown(
+        """
+        <div style="text-align: center;">
+            <small>Projet sépcialement réalisé dans le cadre de notre aventure Wild Code School | © 2024</small>
+        </div>
+        """,
+unsafe_allow_html=True,
+    )
+
     
-    Naviguez dans la barre latérale pour explorer les différentes sections :
-    - **Interface graphique** : Visualisation des données.
-    - **Programmation** : Contenu lié au code et à la programmation.
-    - **Recommandations** : Système de recommandations interactif.
-    """)
-    st.image("https://via.placeholder.com/800x300.png?text=Bienvenue+sur+l%27Accueil", caption="Accueil")
+    # Afficher une image sur le thème du cinéma en haut de la page
+st.image(
+        r'c:\Users\dassi\Downloads\WEBSTAGRAM.jpg',
+caption="Ne ratez jamais une séance grâce à Cinéma Movie Time",
+use_column_width  = True)
 
-# Page 2 : Interface graphique
-elif page == "Interface graphique":
-    st.title("📊 Interface Graphique")
-    st.write("Cette page est dédiée à la visualisation des graphiques et des données.")
 
-    # Exemple : Importation de données et affichage graphique
-    import pandas as pd
-    import matplotlib.pyplot as plt
+# Extraction et nettoyage des genres
+def safe_parse_genres(genre_str):
+    import ast
+    try:
+        parsed = ast.literal_eval(genre_str)
+        if isinstance(parsed, list):
+            return ', '.join(parsed)
+        return str(parsed)
+    except (ValueError, SyntaxError):
+        return "Action"
 
-    # Données d'exemple
-    data = {"Catégorie": ["A", "B", "C", "D"], "Valeurs": [10, 20, 15, 30]}
-    df = pd.DataFrame(data)
+data['genres'] = data['genres'].apply(safe_parse_genres)
 
-    # Affichage des données
-    st.write("### Données Exemple")
-    st.dataframe(df)
+# Normalisation des colonnes numériques
+numeric_columns = data.select_dtypes(include=['number'])
+scaler = StandardScaler()
+normalized_numeric_columns = pd.DataFrame(scaler.fit_transform(numeric_columns), columns=numeric_columns.columns)
 
-    # Graphique
-    st.write("### Graphique Exemple")
-    fig, ax = plt.subplots()
-    ax.bar(df["Catégorie"], df["Valeurs"])
-    ax.set_xlabel("Catégories")
-    ax.set_ylabel("Valeurs")
-    st.pyplot(fig)
+# Division des données pour RandomForestClassifier
+X = normalized_numeric_columns
+y = pd.Categorical(data['genres']).codes
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Page 3 : Programmation
-elif page == "Programmation":
-    st.title("💻 Programmation")
-    st.write("Cette page présente des exemples de code et des informations liées à la programmation.")
+# Entraîner le modèle Random Forest
+best_rf = RandomForestClassifier(n_estimators=100, max_depth=None, min_samples_split=2, random_state=42)
+best_rf.fit(X_train, y_train)
+data['predicted_genres'] = pd.Categorical.from_codes(best_rf.predict(X), categories=pd.Categorical(data['genres']).categories)
 
-    st.code("""
-    import streamlit as st
+# Entraîner le modèle NearestNeighbors
+nn_model = NearestNeighbors(n_neighbors=6, metric='euclidean')
+nn_model.fit(X)
 
-    # Exemple de fonction
-    def addition(a, b):
-        return a + b
+# Fonction de recommandation
+def recommander_films(nom_film):
+    matches = data[data['titles'].str.contains(nom_film, case=False, na=False)]
+    if matches.empty:
+        return f"Aucun film trouvé correspondant à '{nom_film}'."
 
-    # Utilisation de la fonction
-    result = addition(5, 3)
-    st.write("Le résultat est :", result)
-    """, language="python")
+    film_index = matches.index[0]
+    distances, indices = nn_model.kneighbors([X.iloc[film_index]])
+    recommandations = data.iloc[indices[0][1:]]
+    return recommandations
 
-    st.write("L'exemple ci-dessus montre une simple fonction d'addition en Python.")
+# Interface utilisateur
+st.title("... Et voici votre recommandation minute 😎 ! Nous vous souhaitons un agréable visionnage 😊")
+st.sidebar.title("Votre cinéma, à portée de clic !👌")
 
-# Page 4 : Recommandations
-elif page == "Recommandations":
-    st.title("🎥 Recommandations")
-    st.write("Cette page contient un système de recommandations interactif.")
+# Ajouter des couleurs au style
+st.markdown(
+    "<style>body {background-color: #f0f8ff;} .stApp {color: #444;} h1 {color: #333;} .stMarkdown {font-family: Arial;} .css-1cpxqw2 {background: linear-gradient(to right, #ff7f50, #6495ed);} </style>",
+    unsafe_allow_html=True
+)
 
-    # Exemple : Liste de films pour recommandations
-    movies = ["Inception", "Interstellar", "The Matrix", "The Dark Knight", "Pulp Fiction"]
-    selected_movie = st.selectbox("Choisissez un film :", movies)
-
-    st.write(f"### Vous avez sélectionné : {selected_movie}")
-    st.write("Voici quelques films similaires que vous pourriez aimer :")
-    recommendations = {
-        "Inception": ["Shutter Island", "Tenet", "Memento"],
-        "Interstellar": ["Gravity", "The Martian", "Arrival"],
-        "The Matrix": ["Equilibrium", "Blade Runner", "Ghost in the Shell"],
-        "The Dark Knight": ["Batman Begins", "Joker", "Logan"],
-        "Pulp Fiction": ["Reservoir Dogs", "Kill Bill", "Snatch"],
-    }
-
-    st.write(", ".join(recommendations.get(selected_movie, ["Pas de recommandations disponibles"])))
-
-# Footer
-st.sidebar.markdown("---")
-st.sidebar.markdown("**© 2024 - Application Streamlit Multi-pages**")
+film_cherche = st.sidebar.text_input("Que voulez-vous regarder aujourd'hui ?", "")
+if film_cherche:
+    recommandations = recommander_films(film_cherche)
+    if isinstance(recommandations, str):
+        st.write(recommandations)
+    else:
+        st.write(f"### Recommandations pour '{film_cherche}'")
+        col1, col2, col3 = st.columns(3)
+        for idx, row in recommandations.iterrows():
+            with [col1, col2, col3][idx % 3]:
+                st.image(row['poster_url'], width=150)
+                st.write(f"#### {row['titles']}")
+                st.write(f"[Voir la bande-annonce]({row['video_link']})")
+                st.write(f"Genres: {row['genres']} | Popularité: {row['popularity']}")
